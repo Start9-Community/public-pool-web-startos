@@ -6,18 +6,14 @@ export const manifest = setupManifest({
   id: 'public-pool-web',
   title: "Public Pool's Web",
   license: 'MIT',
-  packageRepo: 'https://github.com/martinbarilik/public-pool-web',
-  upstreamRepo: 'https://github.com/martinbarilik/public-pool-web-startos',
+  packageRepo: 'https://github.com/Start9-Community/public-pool-web-startos',
+  upstreamRepo: 'https://github.com/martinbarilik/public-pool-web',
   marketingUrl: 'https://github.com/martinbarilik/public-pool-web',
   donationUrl: 'https://github.com/martinbarilik/public-pool-web#donate',
   description: { short, long },
   volumes: ['db'],
   images: {
     'public-pool-web': {
-      source: { dockerTag: 'martinbarilik/public-pool-web:0.2.0' },
-      arch: ['x86_64', 'aarch64'],
-    },
-    sidekiq: {
       source: { dockerTag: 'martinbarilik/public-pool-web:0.2.0' },
       arch: ['x86_64', 'aarch64'],
     },

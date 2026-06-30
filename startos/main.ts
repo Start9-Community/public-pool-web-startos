@@ -145,7 +145,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .addDaemon('sidekiq', {
       subcontainer: await sdk.SubContainer.of(
         effects,
-        { imageId: 'sidekiq' },
+        { imageId: 'public-pool-web' },
         sdk.Mounts.of(),
         'sidekiq-sub',
       ),
@@ -163,11 +163,20 @@ export const main = sdk.setupMain(async ({ effects }) => {
       },
       ready: {
         display: null,
-        fn: () =>
-          sdk.healthCheck.checkPortListening(effects, uiPort, {
-            successMessage: i18n('Sidekiq is running'),
-            errorMessage: i18n('Sidekiq is not running'),
-          }),
+        // Sidekiq has no listening port; read liveness from its Redis heartbeat
+        // set (refreshed ~every 5s) via the valkey subcontainer's CLI.
+        fn: async () => {
+          const { stdout } = await valkeySub.exec([
+            'valkey-cli',
+            '-h',
+            '127.0.0.1',
+            'scard',
+            'processes',
+          ])
+          return Number(stdout.toString().trim()) > 0
+            ? { result: 'success', message: i18n('Sidekiq is running') }
+            : { result: 'loading', message: i18n('Sidekiq is not running') }
+        },
       },
       requires: ['db', 'valkey', 'public-pool-web'],
     })
