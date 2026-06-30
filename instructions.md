@@ -1,36 +1,33 @@
 # Public Pool's Web
 
-You've installed Public Pool's Web — a modern web interface for managing your Public Pool's data, with real-time updates and a responsive design.
+Public Pool's Web is a **dashboard for an existing Public Pool**, not a mining pool itself. Install and start the **Public Pool** service first — without it, this app has no data to show.
+
+## Documentation
+
+- [Public Pool's Web (upstream)](https://github.com/martinbarilik/public-pool-web) — the web app's own README and feature documentation.
+- [Public Pool (the pool)](https://github.com/benjamin-wilson/public-pool) — the mining-pool service this dashboard reads from.
 
 ## What you get on StartOS
 
-- **A web interface** for browsing and managing your Public Pool's data.
-- **Everything bundled** — the database (PostgreSQL), cache (Valkey), and background worker (Sidekiq) run inside the package. There is nothing to install separately.
-- **No technical setup required** — the database is created and prepared automatically on first start.
+- A richer web interface for browsing your Public Pool data — pool stats, your workers, hashrate charts, and per-worker temperature (read from each AxeOS miner).
+- Everything the app needs to run is bundled: the database (PostgreSQL), cache (Valkey), and background worker (Sidekiq) all run inside this package.
+- A donation page for the upstream author.
+
+The pool data itself comes from your separate **Public Pool** service over the local network — this package adds the dashboard on top.
 
 ## Getting set up
 
-There's no setup wizard, no admin password, no first-run prompt — the service is usable the moment it starts and reports healthy.
+1. **Install and start the Public Pool service** if you haven't already, and point your miners at it. This is required — Public Pool's Web reads everything from it.
+2. Start Public Pool's Web and wait until the **Database** and **Web Interface** health checks are green. The first start may take a little longer while the database is created and migrated.
+3. Open the **Web UI** interface to launch the dashboard in your browser.
 
-1. Open Public Pool's Web's **Dashboard** tab.
-2. Wait until the **Database** and **Web Interface** health checks are green.
-3. Click the **Web UI** interface to open the app in your browser.
+## Using Public Pool's Web
 
-> The very first start may take a little longer while the database is created and migrated.
-
-## Adding your user and worker
-
-Public Pool's Web cannot detect your miners on its own — you must add them manually in the web UI:
+The app cannot detect your miners on its own — you add them in the web UI:
 
 1. Add your **user** — the Bitcoin address your miner uses to connect to Public Pool.
 2. Add your **worker name** — the worker name configured on your miner.
 
-Both values must be **identical** to what your miner submits to the Public Pool app. If they don't match exactly, no data will appear.
+Both values must be **identical** to what your miner submits to Public Pool. If they don't match exactly, no data will appear for that worker.
 
-## Backups
-
-StartOS backups include all of your Public Pool's Web data (the PostgreSQL database). Cache and job-queue state are intentionally excluded — they are rebuilt automatically.
-
-## Limitations
-
-- The service is configured automatically; there are no user-facing settings in the StartOS UI.
+To read per-worker temperature, set each worker's IP address in the UI so the app can query the miner's AxeOS interface directly.
