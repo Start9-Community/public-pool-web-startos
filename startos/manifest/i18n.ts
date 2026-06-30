@@ -1,20 +1,21 @@
 export const short = {
-  en_US: 'Bare bones example of a StartOS service',
-  es_ES: 'Ejemplo básico de un servicio de StartOS',
-  de_DE: 'Minimales Beispiel eines StartOS-Dienstes',
-  pl_PL: 'Podstawowy przykład usługi StartOS',
-  fr_FR: "Exemple minimaliste d'un service StartOS",
+  en_US: "Modern web interface for managing your Public Pool's data",
+  es_ES: 'Interfaz web moderna para gestionar los datos de tu Public Pool',
+  de_DE: 'Moderne Weboberfläche zur Verwaltung der Daten deines Public Pools',
+  pl_PL:
+    'Nowoczesny interfejs webowy do zarządzania danymi Twojego Public Pool',
+  fr_FR: 'Interface web moderne pour gérer les données de votre Public Pool',
 }
 
 export const long = {
   en_US:
-    'Hello World is a template service that provides examples of basic StartOS features.',
+    'A modern web application built with Ruby on Rails 8.1 and Bootstrap 5, featuring real-time updates with Hotwire and a responsive design.',
   es_ES:
-    'Hello World es un servicio de plantilla que proporciona ejemplos de las características básicas de StartOS.',
+    'Una aplicación web moderna construida con Ruby on Rails 8.1 y Bootstrap 5, con actualizaciones en tiempo real mediante Hotwire y un diseño responsivo.',
   de_DE:
-    'Hello World ist ein Vorlagen-Dienst, der Beispiele für grundlegende StartOS-Funktionen bietet.',
+    'Eine moderne Webanwendung, entwickelt mit Ruby on Rails 8.1 und Bootstrap 5, mit Echtzeit-Updates durch Hotwire und einem responsiven Design.',
   pl_PL:
-    'Hello World to szablon usługi, który zawiera przykłady podstawowych funkcji StartOS.',
+    'Nowoczesna aplikacja webowa zbudowana w oparciu o Ruby on Rails 8.1 i Bootstrap 5, oferująca aktualizacje w czasie rzeczywistym dzięki Hotwire oraz responsywny design.',
   fr_FR:
-    'Hello World est un service modèle qui fournit des exemples des fonctionnalités de base de StartOS.',
+    'Une application web moderne construite avec Ruby on Rails 8.1 et Bootstrap 5, offrant des mises à jour en temps réel grâce à Hotwire et un design responsive.',
 }

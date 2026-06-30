@@ -1,16 +1,12 @@
 <p align="center">
-  <img src="icon.svg" alt="Hello World Logo" width="21%">
+  <img src="icon.svg" alt="Public Pool's Web Logo" width="21%">
 </p>
 
-# Hello World on StartOS
+# Public Pool's Web on StartOS
 
-> **Upstream repo:** <https://github.com/Start9Labs/hello-world>
+> **Upstream repo:** <https://github.com/martinbarilik/public-pool-web>
 
-A minimal reference service for StartOS. It displays a simple web page — nothing more. Use [this repository](https://github.com/Start9Labs/hello-world-startos) as a template when packaging a new service for StartOS.
-
-## Getting Started
-
-To learn how to use this template to create your own StartOS service package, see the [Packaging Guide](https://docs.start9.com/packaging).
+A modern web interface for managing your Public Pool's data, built with Ruby on Rails 8.1 and Bootstrap 5, featuring real-time updates with Hotwire. Packaged for StartOS with PostgreSQL and Valkey sidecars.
 
 ---
 
@@ -25,39 +21,55 @@ To learn how to use this template to create your own StartOS service package, se
 - [Backups and Restore](#backups-and-restore)
 - [Health Checks](#health-checks)
 - [Dependencies](#dependencies)
-- [Limitations and Differences](#limitations-and-differences)
-- [What Is Unchanged from Upstream](#what-is-unchanged-from-upstream)
+- [Architecture](#architecture)
 - [Quick Reference for AI Consumers](#quick-reference-for-ai-consumers)
 
 ---
 
 ## Image and Container Runtime
 
-| Property      | Value                                  |
-| ------------- | -------------------------------------- |
-| Image         | `ghcr.io/start9labs/hello-world`       |
-| Architectures | x86_64, aarch64, riscv64               |
-| Command       | `hello-world`                          |
+| Image             | Source                                | Purpose                       |
+| ----------------- | ------------------------------------- | ----------------------------- |
+| `public-pool-web` | `martinbarilik/public-pool-web:0.2.0` | Rails web server (Thruster)   |
+| `sidekiq`         | `martinbarilik/public-pool-web:0.2.0` | Background job worker         |
+| `postgres`        | `postgres:18.4-trixie`                | Database sidecar              |
+| `valkey`          | `valkey/valkey:8-alpine`              | Redis-compatible cache/queues |
+
+Architectures: x86_64, aarch64.
 
 ---
 
 ## Volume and Data Layout
 
-| Volume | Mount Point | Purpose         |
-| ------ | ----------- | --------------- |
-| `main` | `/data`     | Persistent data |
+| Volume  | Mount Point           | Mounted Into | Purpose                                  |
+| ------- | --------------------- | ------------ | ---------------------------------------- |
+| `db`    | `/var/lib/postgresql` | `postgres`   | PostgreSQL data (persistent)             |
+| `redis` | —                     | —            | Unused — Valkey runs without persistence |
+
+Valkey is configured ephemeral (`--save '' --appendonly no`); it holds only Sidekiq queues and cache, which are safe to lose on restart.
 
 ---
 
 ## Installation and First-Run Flow
 
-No special setup. Install and start — the web page is immediately available.
+1. On install, a random PostgreSQL password is generated and stored in the service's `store.json`.
+2. On start, the `db` (PostgreSQL) and `valkey` daemons come up first.
+3. The web daemon starts via the image's Docker entrypoint, which runs `rails db:prepare` (creates the database and runs migrations) before launching the server with Thruster.
+4. Sidekiq starts after the web daemon is healthy.
+
+No user setup is required.
 
 ---
 
 ## Configuration Management
 
-No configurable settings. The service runs with no user-facing configuration.
+| Variable           | Value                                                                         | Consumers    |
+| ------------------ | ----------------------------------------------------------------------------- | ------------ |
+| `DATABASE_URL`     | `postgresql://public_pool_web:<pw>@127.0.0.1:5432/public_pool_web_production` | web, sidekiq |
+| `REDIS_URL`        | `redis://127.0.0.1:6379/0`                                                    | web, sidekiq |
+| `RAILS_MASTER_KEY` | baked into the package (`startos/utils.ts`)                                   | web, sidekiq |
+
+All inter-daemon communication is over loopback (`127.0.0.1`); PostgreSQL and Valkey are bound to localhost only and are not externally reachable.
 
 ---
 
@@ -65,7 +77,7 @@ No configurable settings. The service runs with no user-facing configuration.
 
 | Interface | Port | Protocol | Purpose              |
 | --------- | ---- | -------- | -------------------- |
-| Web UI    | 80   | HTTP     | Hello World web page |
+| Web UI    | 3000 | HTTP     | Public Pool's Web UI |
 
 **Access methods:**
 
@@ -86,49 +98,64 @@ None.
 
 **Included in backup:**
 
-- `main` volume
+- `db` volume (PostgreSQL data)
 
-**Restore behavior:** Volume is fully restored before the service starts.
+**Not included:** Valkey state (ephemeral by design).
+
+**Restore behavior:** Volume is fully restored before the service starts; migrations re-run via `db:prepare` on the next start.
 
 ---
 
 ## Health Checks
 
-| Check         | Method              | Messages                                                           |
-| ------------- | ------------------- | ------------------------------------------------------------------ |
-| Web Interface | Port listening (80) | Success: "The web interface is ready" / Error: "The web interface is not ready" |
+| Check         | Daemon            | Method                             | Shown in UI |
+| ------------- | ----------------- | ---------------------------------- | ----------- |
+| Database      | `db`              | `pg_isready` against `127.0.0.1`   | Yes         |
+| Valkey        | `valkey`          | `valkey-cli ping` (expects `PONG`) | No          |
+| Web Interface | `public-pool-web` | Port 3000 listening                | Yes         |
+| Sidekiq       | `sidekiq`         | Port 3000 listening (web proxy)    | No          |
+
+Daemon start order: `db` + `valkey` → `public-pool-web` → `sidekiq`.
 
 ---
 
 ## Dependencies
 
-None.
+None (all sidecars are bundled in the package).
 
 ---
 
-## Limitations and Differences
+## Architecture
 
-1. **No meaningful functionality** — this is a reference/template package only
-
----
-
-## What Is Unchanged from Upstream
-
-The service is identical to upstream. There are no modifications.
+- `startos/main.ts` — daemon definitions (postgres, valkey, web, sidekiq) and health checks
+- `startos/init/initializeService.ts` — generates the PostgreSQL password on install
+- `startos/utils.ts` — shared constants (ports, DB names, `REDIS_URL`, master key)
+- `startos/manifest/index.ts` — package manifest and image pins
+- `startos/i18n/` — translation dictionaries (en, es, de, pl, fr)
+- Database migrations are handled by the image's Docker entrypoint (`rails db:prepare`), not by the package code
 
 ---
 
 ## Quick Reference for AI Consumers
 
 ```yaml
-package_id: hello-world
-image: ghcr.io/start9labs/hello-world
-architectures: [x86_64, aarch64, riscv64]
+package_id: public-pool-web
+images:
+  public-pool-web: martinbarilik/public-pool-web:0.2.0
+  sidekiq: martinbarilik/public-pool-web:0.2.0
+  postgres: postgres:18.4-trixie
+  valkey: valkey/valkey:8-alpine
+architectures: [x86_64, aarch64]
 volumes:
-  main: /data
+  db: /var/lib/postgresql (postgres)
+  redis: unused (valkey is ephemeral)
 ports:
-  ui: 80
+  ui: 3000
+env:
+  DATABASE_URL: postgresql://public_pool_web:<generated>@127.0.0.1:5432/public_pool_web_production
+  REDIS_URL: redis://127.0.0.1:6379/0
+  RAILS_MASTER_KEY: static, defined in startos/utils.ts
 dependencies: none
-startos_managed_env_vars: none
 actions: none
+backup: db volume only
 ```

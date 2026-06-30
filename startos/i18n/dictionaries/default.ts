@@ -2,14 +2,21 @@ export const DEFAULT_LANG = 'en_US'
 
 const dict = {
   // main.ts
-  'Starting Hello World!': 0,
+  "Starting Public Pool's Web!": 0,
   'Web Interface': 1,
   'The web interface is ready': 2,
   'The web interface is not ready': 3,
+  Database: 4,
+  'Waiting for PostgreSQL to be ready': 5,
+  'PostgreSQL is ready': 6,
+  'Sidekiq is running': 10,
+  'Sidekiq is not running': 11,
 
   // interfaces.ts
-  'Web UI': 4,
-  'The web interface of Hello World': 5,
+  'Web UI': 7,
+  "The web interface of Public Pool's Web": 8,
+  // manifest.ts
+  'Public Pool is required to run this application.': 9,
 } as const
 
 /**

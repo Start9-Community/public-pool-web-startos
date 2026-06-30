@@ -1,17 +1,17 @@
 # Updating the upstream version
 
-This package wraps Start9 Labs' own [hello-world](https://github.com/Start9Labs/hello-world) source, which we build and publish ourselves as `ghcr.io/start9labs/hello-world`. "Upstream" here means that source repo, not the image namespace.
+This package wraps the Public Pool's Web application, published as `martinbarilik/public-pool-web`, plus official PostgreSQL and Valkey sidecar images. All image pins live in `startos/manifest/index.ts` under `images.*.source.dockerTag`.
 
-## Determining the upstream version
+## Image pins
 
-- **hello-world** ([Start9Labs/hello-world](https://github.com/Start9Labs/hello-world)) — fetch the latest release tag:
+| Image                           | Used for     | Current pin                           |
+| ------------------------------- | ------------ | ------------------------------------- |
+| `martinbarilik/public-pool-web` | web, sidekiq | `martinbarilik/public-pool-web:0.2.0` |
+| `postgres`                      | database     | `postgres:18.4-alpine`                |
+| `valkey/valkey`                 | cache/queues | `valkey/valkey:8-alpine`              |
 
-  ```sh
-  gh release view -R Start9Labs/hello-world --json tagName -q .tagName
-  ```
+## Applying a bump
 
-  The current pin lives in `startos/manifest/index.ts` at `images['hello-world'].source.dockerTag` (the version after the `:` in `ghcr.io/start9labs/hello-world:<version>`).
-
-## Applying the bump
-
-- Bump `dockerTag` in `startos/manifest/index.ts` to `ghcr.io/start9labs/hello-world:<new version>` (drop the leading `v` from the release tag).
+1. Update the relevant `dockerTag` in `startos/manifest/index.ts`. The web app image is used by both the `public-pool-web` and `sidekiq` entries — bump both together.
+2. Bump the package `version` in `startos/versions/current.ts` and update `releaseNotes` (all languages).
+3. Rebuild with `make` and test the `.s9pk`.

@@ -19,7 +19,7 @@ jobs:
 
   release:
     needs: guard
-    if: needs.guard.outputs.id != 'hello-world'
+    if: needs.guard.outputs.id != 'public-pool-web'
     uses: start9labs/shared-workflows/.github/workflows/release.yml@master
     with:
       # FREE_DISK_SPACE: true
