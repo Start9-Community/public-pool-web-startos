@@ -25,7 +25,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const databaseUrl = `postgresql://${postgresUser}:${postgresPassword}@127.0.0.1:${postgresPort}/${postgresDb}`
 
   // Create PostgreSQL subcontainer
-  const postgresSub = await sdk.SubContainer.of(
+  const postgresSub = sdk.SubContainer.of(
     effects,
     { imageId: 'postgres' },
     sdk.Mounts.of().mountVolume({
@@ -37,11 +37,25 @@ export const main = sdk.setupMain(async ({ effects }) => {
     'postgres-sub',
   )
 
-  const valkeySub = await sdk.SubContainer.of(
+  const valkeySub = sdk.SubContainer.of(
     effects,
     { imageId: 'valkey' },
     null,
     'valkey-sub',
+  )
+
+  const webSub = sdk.SubContainer.of(
+    effects,
+    { imageId: 'public-pool-web' },
+    sdk.Mounts.of(),
+    'public-pool-web-sub',
+  )
+
+  const sidekiqSub = sdk.SubContainer.of(
+    effects,
+    { imageId: 'public-pool-web' },
+    sdk.Mounts.of(),
+    'sidekiq-sub',
   )
 
   return sdk.Daemons.of(effects)
@@ -112,12 +126,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       requires: [],
     })
     .addDaemon('public-pool-web', {
-      subcontainer: await sdk.SubContainer.of(
-        effects,
-        { imageId: 'public-pool-web' },
-        sdk.Mounts.of(),
-        'public-pool-web-sub',
-      ),
+      subcontainer: webSub,
       exec: {
         command: sdk.useEntrypoint(['./bin/thrust', './bin/rails', 'server']),
         env: {
@@ -143,12 +152,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       requires: ['db', 'valkey'],
     })
     .addDaemon('sidekiq', {
-      subcontainer: await sdk.SubContainer.of(
-        effects,
-        { imageId: 'public-pool-web' },
-        sdk.Mounts.of(),
-        'sidekiq-sub',
-      ),
+      subcontainer: sidekiqSub,
       exec: {
         command: ['bundle', 'exec', 'sidekiq'],
         env: {
