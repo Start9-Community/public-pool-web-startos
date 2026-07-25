@@ -1,7 +1,7 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.2.0:1',
+  version: '0.2.0:2',
   releaseNotes: {
     en_US:
       'Migrates the package to start-sdk 2.0 (requires StartOS 0.4.0-beta.10 or later).',
