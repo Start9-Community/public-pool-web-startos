@@ -1,16 +1,18 @@
 <p align="center">
-  <img src="icon.svg" alt="Public Pool's Web Logo" width="21%">
+  <img src="icon.png" alt="Public Pool's Web Logo" width="21%">
 </p>
 
 # Public Pool's Web on StartOS
 
-> **Upstream repo:** <https://github.com/martinbarilik/public-pool-web>
->
 > Everything not listed in this document should behave the same as upstream
 > Public Pool's Web. If a feature, setting, or behavior is not mentioned here,
-> the upstream documentation is accurate and fully applicable.
+> the upstream documentation is accurate and fully applicable — see the
+> Documentation section of `instructions.md` for links.
 
-[Public Pool's Web](https://github.com/martinbarilik/public-pool-web) is a modern web interface for managing your [Public Pool](https://github.com/benjamin-wilson/public-pool) data — built with Ruby on Rails and Bootstrap, with real-time updates via Hotwire. It is a **dashboard, not a mining pool**: it reads its data from a running Public Pool service over that service's HTTP API.
+[Public Pool's Web](https://github.com/martinbarilik/public-pool-web) is a richer dashboard for an existing Public Pool: pool statistics, per-worker hashrate charts, and temperatures read from the miners themselves. It is a front end, not a pool — the mining happens in the Public Pool service this one reads from.
+
+- **Upstream repo:** <https://github.com/martinbarilik/public-pool-web>
+- **Wrapper repo:** <https://github.com/Start9-Community/public-pool-web-startos>
 
 ---
 
@@ -18,145 +20,147 @@
 
 - [Image and Container Runtime](#image-and-container-runtime)
 - [Volume and Data Layout](#volume-and-data-layout)
-- [Installation and First-Run Flow](#installation-and-first-run-flow)
-- [Configuration Management](#configuration-management)
-- [Network Access and Interfaces](#network-access-and-interfaces)
-- [Actions (StartOS UI)](#actions-startos-ui)
-- [Backups and Restore](#backups-and-restore)
-- [Health Checks](#health-checks)
+- [File Models](#file-models)
 - [Dependencies](#dependencies)
+- [Network Access and Interfaces](#network-access-and-interfaces)
+- [Installation and First-Run Flow](#installation-and-first-run-flow)
+- [Actions](#actions)
+- [Tasks](#tasks)
+- [Health Checks](#health-checks)
+- [Backups and Restore](#backups-and-restore)
 - [Limitations and Differences](#limitations-and-differences)
-- [What Is Unchanged from Upstream](#what-is-unchanged-from-upstream)
-- [Contributing](#contributing)
 - [Quick Reference for AI Consumers](#quick-reference-for-ai-consumers)
 
 ---
 
 ## Image and Container Runtime
 
-| Image                           | Purpose                                          |
-| ------------------------------- | ------------------------------------------------ |
-| `martinbarilik/public-pool-web` | Rails web server (Thruster → Puma) **and** the Sidekiq background worker — one image, two subcontainers |
-| `postgres`                      | PostgreSQL database sidecar                       |
-| `valkey/valkey`                 | Redis-compatible cache / job queue (Valkey)      |
+Three images and four daemons — the application twice, plus two datastores.
 
-Architectures: x86_64, aarch64.
+| Property      | Value                                                     |
+| ------------- | --------------------------------------------------------- |
+| Images        | `martinbarilik/public-pool-web`, `postgres`, `valkey`     |
+| Architectures | x86_64, aarch64                                           |
+| Command       | Each image's own entrypoint, and the worker's own command |
 
-The web subcontainer runs through the image's own entrypoint, which executes `rails db:prepare` (create + migrate) before launching the server; Thruster fronts the app and proxies to Puma. The Sidekiq subcontainer runs the same image with `bundle exec sidekiq`.
+| Subcontainer          | Purpose                                        |
+| --------------------- | ---------------------------------------------- |
+| `public-pool-web-sub` | The web application — attach here for app logs |
+| `sidekiq-sub`         | The background worker, from the same image     |
+| `postgres-sub`        | The database                                   |
+| `valkey-sub`          | The job queue and cache                        |
 
----
+**The application image runs twice**: once serving HTTP, once as the background worker that does the polling and aggregation. They share nothing but the database and the queue.
+
+**Valkey persists nothing** — both its snapshot and append-only files are disabled, and it binds loopback only. It is a job queue and a cache, and everything in it is re-derivable, which is why it gets no volume.
 
 ## Volume and Data Layout
 
-| Volume | Mount Point           | Mounted Into | Purpose                      |
-| ------ | --------------------- | ------------ | ---------------------------- |
-| `db`   | `/var/lib/postgresql` | `postgres`   | PostgreSQL data (persistent) |
+One volume, and it belongs to the database.
 
-Valkey is configured ephemeral (`--save '' --appendonly no`); it holds only Sidekiq queues and cache, which are safe to lose on restart, so it has **no** volume. The service's `store.json` (which holds the generated PostgreSQL password) lives on the `db` volume.
+| Volume | Mount Point           | Purpose                       |
+| ------ | --------------------- | ----------------------------- |
+| `db`   | `/var/lib/postgresql` | The PostgreSQL data directory |
 
----
+| Path         | Written by | Holds                           |
+| ------------ | ---------- | ------------------------------- |
+| _PGDATA_     | PostgreSQL | Every statistic the app derives |
+| `store.json` | Init       | The database password           |
 
-## Installation and First-Run Flow
+**Neither application container mounts anything.** The web server and the worker are stateless: everything they know is in PostgreSQL, and everything in PostgreSQL is derived from what Public Pool reports.
 
-1. On install, a random PostgreSQL password is generated and persisted to the service's `store.json`.
-2. On start, the `db` (PostgreSQL) and `valkey` daemons come up first.
-3. The web daemon starts via the image's entrypoint, which runs `rails db:prepare` (creates the database and runs migrations) before launching the server.
-4. Sidekiq starts after the web daemon is healthy.
+## File Models
 
-No user setup is required to bring the service up, but it will display no data until its **Public Pool** dependency is running and receiving miners (see [Dependencies](#dependencies)).
+One model, holding one generated value.
 
----
+| File         | Format | Modelled                | Written by |
+| ------------ | ------ | ----------------------- | ---------- |
+| `store.json` | JSON   | Yes — `FileHelper.json` | Init       |
 
-## Configuration Management
+**The database password**, generated at install and never regenerated — the PostgreSQL cluster was initialized with it, so replacing it would make the existing data unopenable rather than rotating a credential.
 
-All configuration is injected as environment variables by the package; there are no user-facing settings.
+Everything else is **passed as environment**, composed at start: the database URL built from that password, the queue's address, the Rails master key, the port layout, and where to find Public Pool.
 
-| Variable                          | Managed by | Purpose                                                              |
-| --------------------------------- | ---------- | ------------------------------------------------------------------- |
-| `DATABASE_URL`                    | StartOS    | Points the app at the bundled PostgreSQL over loopback              |
-| `REDIS_URL`                       | StartOS    | Points the app at the bundled Valkey over loopback                  |
-| `RAILS_MASTER_KEY`                | StartOS    | Static key baked into the package (`startos/utils.ts`)              |
-| `PUBLIC_POOL_HOST` / `_PORT`      | StartOS    | Address of the Public Pool dependency (`public-pool.startos`) whose API the app reads |
-| `DONATE_BTC_ADDRESS` / `_LN_…`    | StartOS    | Addresses shown on the app's donation page                          |
-
-All inter-daemon communication (web/sidekiq ↔ PostgreSQL ↔ Valkey) is over loopback (`127.0.0.1`); PostgreSQL and Valkey bind to localhost only and are not externally reachable. Pool data is fetched from the Public Pool dependency at `public-pool.startos` over the StartOS internal network.
-
----
-
-## Network Access and Interfaces
-
-| Interface | Port | Protocol | Purpose              |
-| --------- | ---- | -------- | -------------------- |
-| Web UI    | 3000 | HTTP     | Public Pool's Web UI |
-
-**Access methods:**
-
-- LAN IP with unique port
-- `<hostname>.local` with unique port
-- Tor `.onion` address (if a Tor interface is added)
-- Custom domains (if configured)
-
----
-
-## Actions (StartOS UI)
-
-None. The Public Pool host/port are wired to the dependency automatically; per-pool settings (users, workers) are managed inside the app's own web UI.
-
----
-
-## Backups and Restore
-
-**Included in backup:**
-
-- `db` volume (PostgreSQL data, including the generated password in `store.json`)
-
-**Not included:** Valkey state (ephemeral by design — Sidekiq queues and cache are rebuilt automatically).
-
-**Restore behavior:** the `db` volume is fully restored before the service starts; `rails db:prepare` re-runs on the next start and is a no-op for an already-migrated database.
-
----
-
-## Health Checks
-
-| Check         | Daemon            | Method                                              | Shown in UI |
-| ------------- | ----------------- | --------------------------------------------------- | ----------- |
-| Database      | `db`              | `pg_isready` against `127.0.0.1`                    | Yes         |
-| Valkey        | `valkey`          | `valkey-cli ping` (expects `PONG`)                  | No          |
-| Web Interface | `public-pool-web` | Port 3000 listening                                 | Yes         |
-| Sidekiq       | `sidekiq`         | Redis heartbeat — `SCARD processes` reports ≥ 1 live worker | No          |
-
-Daemon start order: `db` + `valkey` → `public-pool-web` → `sidekiq`.
-
----
+Two of those are fixed constants in the package rather than settings: **the Rails master key**, which the published image needs in order to decrypt its own bundled credentials, and **the donation addresses**, which are the upstream author's and appear on the app's donation page.
 
 ## Dependencies
 
-| Dependency      | Required | Health checks that must pass | Purpose                                                                 |
-| --------------- | -------- | ---------------------------- | ----------------------------------------------------------------------- |
-| **Public Pool** | Yes      | `stratum`, `ui`              | This service is a frontend with no pool of its own. It polls Public Pool's HTTP API (at `public-pool.startos`) for pool, worker, and chart data. |
+One, and it is required.
 
-No dependency volumes are mounted; the integration is purely over the network. The web app degrades gracefully when Public Pool is unreachable — it simply shows no new data rather than failing — so the dependency is declared but not hard-gated in `main.ts`.
+| Dependency  | Required | Health checks required | Why                    |
+| ----------- | -------- | ---------------------- | ---------------------- |
+| Public Pool | Yes      | `stratum`, `ui`        | Everything it displays |
 
----
+**Both of Public Pool's checks are required, not just one.** The dashboard reads over Public Pool's web interface, and a pool whose stratum port is down has nothing meaningful to report — so waiting for both keeps this service in the dependency-waiting state instead of showing an empty dashboard.
+
+**Public Pool is reached over the internal bridge**, at an address resolved from its own binding at start rather than at a fixed hostname. The lookup names the plaintext leg explicitly, because Public Pool's interface publishes both a plaintext and a TLS address. If that address cannot be resolved the service refuses to start and says so, rather than coming up pointed at nothing.
+
+## Network Access and Interfaces
+
+One interface.
+
+| Interface | Id   | Type | Port | Description   |
+| --------- | ---- | ---- | ---- | ------------- |
+| Web UI    | `ui` | ui   | 3000 | The dashboard |
+
+Bound on the `ui-multi` MultiHost over HTTP and not masked.
+
+**There is no login of any kind** — not the application's, and none added by StartOS. Anyone who can reach the address sees your pool's statistics and your workers. That is a disclosure question rather than a control one: the dashboard is read-only, and nothing on it can change the pool.
+
+The HTTP port in front is a small proxy that forwards to the Rails server on another port inside the container; both PostgreSQL and Valkey are bound to loopback and are not exported.
+
+## Installation and First-Run Flow
+
+Install generates the database password. There is no task, no credential to record, and nothing to configure.
+
+**Public Pool must be installed and running first** — it is a required dependency, and until both of its checks pass this service waits rather than starting.
+
+The first start creates and migrates the database, so it takes noticeably longer than later ones. Once the database and web checks are green, the dashboard is ready; it fills in as the worker polls the pool.
+
+## Actions
+
+**None.** The package ships an empty action set: there is nothing to configure, and everything on the dashboard is derived from the pool.
+
+## Tasks
+
+None. This package raises no tasks, so the service is never held on a prompt and its ordinary controls are always available.
+
+## Health Checks
+
+Four checks, two of them shown.
+
+| Check             | Displayed as    | Method                                   |
+| ----------------- | --------------- | ---------------------------------------- |
+| `db`              | "Database"      | PostgreSQL is accepting connections      |
+| `public-pool-web` | "Web Interface" | Port 3000 is listening                   |
+| `valkey`          | — internal      | The queue answers a ping                 |
+| `sidekiq`         | — internal      | A live worker is registered in the queue |
+
+**The worker's check is the interesting one.** Sidekiq has no port to probe, so its liveness is read out of the queue: it registers itself there and refreshes that registration every few seconds, and the check counts the registrations. That is a real liveness signal rather than "the process exists".
+
+Both datastore checks are hidden, because a user cannot act on them: what they would do about a failing queue is the same thing they would do about a failing dashboard.
+
+**None of the four says anything about the pool.** If Public Pool stops reporting, the checks stay green and the dashboard goes stale.
+
+## Backups and Restore
+
+The `db` volume is copied — `sdk.Backups.ofVolumes('db')` — which is the PostgreSQL data directory and the generated password.
+
+**Almost nothing here is irreplaceable.** The database holds statistics derived from Public Pool; what it cannot re-derive is history that Public Pool no longer retains, which is the one reason to keep a backup at all.
+
+**The data directory is copied as files rather than dumped**, so a backup taken while the database is writing is not guaranteed to be crash-consistent, and a restore is only as good as PostgreSQL's own recovery from that state.
+
+A restored instance comes back with the same password and the same history, and resumes polling.
 
 ## Limitations and Differences
 
-1. **It is a dashboard, not a pool.** There is no Stratum server here; miners cannot connect to this package. It is only useful alongside the Public Pool service, which must be installed, running, and receiving miners.
-2. **Users and workers are added by hand.** The app cannot auto-discover miners; you add each user (the Bitcoin address your miner uses) and worker name in the web UI, and they must match exactly what the miner submits to Public Pool.
-3. **Valkey is not persisted.** Cache and Sidekiq queue state are rebuilt on restart by design.
-4. **The Rails master key is baked into the package** (`startos/utils.ts`); it is not user-rotatable. This is a single-tenant, self-hosted deployment, so the key only protects locally stored Rails credentials.
-
----
-
-## What Is Unchanged from Upstream
-
-The Rails application itself — the dashboard UI, the user/worker/chart views, per-worker temperature via AxeOS, and the donation page — behaves exactly as upstream Public Pool's Web documents. Only the runtime wiring is StartOS-specific: bundled PostgreSQL and Valkey sidecars, the Public Pool host injected via environment, automatic database preparation, and the generated database password.
-
----
-
-## Contributing
-
-See [AGENTS.md](./AGENTS.md) for how this package is developed and how to work its `TODO.md`.
+1. **It is a dashboard, not a pool.** Without the Public Pool service it has nothing to show and will not start.
+2. **No authentication at all.** The dashboard is readable by anyone who can reach the address.
+3. **No configuration surface** — no actions, no settings.
+4. **The Rails master key is a constant in the package**, shared with anyone who reads the source; it decrypts the image's bundled credentials, not yours.
+5. **The donation page is the upstream author's** and is not configurable.
+6. **The database is backed up as files**, not as a logical dump.
+7. **The datastores are private.** Neither PostgreSQL nor Valkey can be shared or substituted.
 
 ---
 
@@ -164,26 +168,38 @@ See [AGENTS.md](./AGENTS.md) for how this package is developed and how to work i
 
 ```yaml
 package_id: public-pool-web
-title: Public Pool's Web
-architectures: [x86_64, aarch64]
-images:
-  - martinbarilik/public-pool-web # Rails web server + Sidekiq worker (two subcontainers)
-  - postgres
-  - valkey/valkey
+image: martinbarilik/public-pool-web # plus postgres and valkey
+architectures:
+  - x86_64
+  - aarch64
+subcontainers:
+  - public-pool-web-sub # Rails behind a small HTTP proxy
+  - sidekiq-sub # same image, background worker
+  - postgres-sub
+  - valkey-sub
 volumes:
-  db: /var/lib/postgresql
-ports:
-  ui: 3000
-dependencies:
-  - public-pool # required; data source via its HTTP API at public-pool.startos
+  db: /var/lib/postgresql # the only volume; store.json also lives here
+file_models:
+  - store.json # the generated PostgreSQL password
 startos_managed_env_vars:
+  - PUBLIC_POOL_HOST # resolved from public-pool's `main` host over the bridge, ssl: false
+  - PUBLIC_POOL_PORT
+  - RAILS_MASTER_KEY # a constant in the package, needed by the published image
   - DATABASE_URL
   - REDIS_URL
-  - RAILS_MASTER_KEY
-  - PUBLIC_POOL_HOST
-  - PUBLIC_POOL_PORT
   - DONATE_BTC_ADDRESS
   - DONATE_LN_ADDRESS
-actions: none
-backup: db volume only
+  - THRUSTER_HTTP_PORT
+  - THRUSTER_TARGET_PORT
+dependencies:
+  - public-pool # required, kind: running, healthChecks: [stratum, ui]
+interfaces:
+  ui: { type: ui, port: 3000 } # no authentication of any kind
+actions: []
+tasks: []
+health_checks:
+  - db # displayed "Database"; pg_isready
+  - public-pool-web # displayed "Web Interface"
+  - valkey # internal (display: null)
+  - sidekiq # internal; counts live workers registered in the queue, since it has no port
 ```
