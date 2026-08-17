@@ -9,8 +9,9 @@ import {
   masterKey,
   donateBtcAddress,
   donateLnAddress,
-  publicPoolHost,
-  publicPoolPort,
+  publicPoolHostId,
+  publicPoolPackageId,
+  publicPoolUiPort,
 } from './utils'
 import { storeJson } from './fileModels/store.json'
 
@@ -21,6 +22,25 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const postgresPassword = await storeJson
     .read((s) => s.postgresPassword)
     .const(effects)
+
+  // Public Pool over the LXC bridge. The address only changes when Public
+  // Pool's binding does, so this .const() does not restart on its updates.
+  const publicPoolAddress = await sdk.host
+    .getBridgeAddress(effects, {
+      packageId: publicPoolPackageId,
+      hostId: publicPoolHostId,
+      internalPort: publicPoolUiPort,
+      ssl: false,
+    })
+    .const()
+  // Refuse to start rather than dial a dead host: a placeholder would run the
+  // app against nothing and report healthy.
+  if (!publicPoolAddress) {
+    throw new Error(
+      'Public Pool is not yet reachable on the internal network. Ensure Public Pool is installed and running.',
+    )
+  }
+  const [publicPoolHost, publicPoolPort] = publicPoolAddress.split(':')
 
   const databaseUrl = `postgresql://${postgresUser}:${postgresPassword}@127.0.0.1:${postgresPort}/${postgresDb}`
 
@@ -131,7 +151,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         command: sdk.useEntrypoint(['./bin/thrust', './bin/rails', 'server']),
         env: {
           PUBLIC_POOL_HOST: publicPoolHost,
-          PUBLIC_POOL_PORT: String(publicPoolPort),
+          PUBLIC_POOL_PORT: publicPoolPort,
           RAILS_MASTER_KEY: masterKey,
           DATABASE_URL: databaseUrl,
           REDIS_URL: redisUrl,
@@ -157,7 +177,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         command: ['bundle', 'exec', 'sidekiq'],
         env: {
           PUBLIC_POOL_HOST: publicPoolHost,
-          PUBLIC_POOL_PORT: String(publicPoolPort),
+          PUBLIC_POOL_PORT: publicPoolPort,
           RAILS_MASTER_KEY: masterKey,
           REDIS_URL: redisUrl,
           DATABASE_URL: databaseUrl,

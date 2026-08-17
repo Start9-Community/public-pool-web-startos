@@ -1,8 +1,12 @@
 // Here we define any constants or functions that are shared by multiple components
 // throughout the package codebase. This file will be unnecessary for many packages.
 
-export const publicPoolHost = 'public-pool.startos'
-export const publicPoolPort = 80
+// public-pool's own host id and UI port, by literal — it is not an npm
+// dependency here. Its UI binding is `protocol: 'http'`, so it publishes both a
+// plaintext and a TLS address and the bridge lookup has to name which it wants.
+export const publicPoolPackageId = 'public-pool'
+export const publicPoolHostId = 'main'
+export const publicPoolUiPort = 80
 export const uiPort = 3000
 export const postgresPort = 5432
 export const postgresUser = 'public_pool_web'
