@@ -91,7 +91,7 @@ One, and it is required.
 | ----------- | -------- | ---------------------- | ---------------------- |
 | Public Pool | Yes      | `stratum`, `ui`        | Everything it displays |
 
-**Both of Public Pool's checks are required, not just one.** The dashboard reads over Public Pool's web interface, and a pool whose stratum port is down has nothing meaningful to report — so waiting for both keeps this service in the dependency-waiting state instead of showing an empty dashboard.
+**Both of Public Pool's checks are required, not just one.** The dashboard reads over Public Pool's web interface, and a pool whose stratum port is down has nothing meaningful to report — so StartOS flags the dependency as unsatisfied until both pass. The flag does not hold this service back: it starts regardless, and while Public Pool is stopped or failing a check the dashboard shows only what Public Pool last reported.
 
 **Public Pool is reached over the internal bridge**, at an address resolved from its own binding at start rather than at a fixed hostname. The lookup names the plaintext leg explicitly, because Public Pool's interface publishes both a plaintext and a TLS address. If that address cannot be resolved the service refuses to start and says so, rather than coming up pointed at nothing.
 
@@ -113,7 +113,7 @@ The HTTP port in front is a small proxy that forwards to the Rails server on ano
 
 Install generates the database password. There is no task, no credential to record, and nothing to configure.
 
-**Public Pool must be installed and running first** — it is a required dependency, and until both of its checks pass this service waits rather than starting.
+**Public Pool must be installed and running first** — it is a required dependency. Until both of its checks pass, StartOS shows the dependency as unsatisfied, but this service still starts; the dashboard has data only once Public Pool is up.
 
 The first start creates and migrates the database, so it takes noticeably longer than later ones. Once the database and web checks are green, the dashboard is ready; it fills in as the worker polls the pool.
 
@@ -154,7 +154,7 @@ A restored instance comes back with the same password and the same history, and 
 
 ## Limitations and Differences
 
-1. **It is a dashboard, not a pool.** Without the Public Pool service it has nothing to show and will not start.
+1. **It is a dashboard, not a pool.** Without the Public Pool service installed it will not start, and while Public Pool is stopped it has nothing new to show.
 2. **No authentication at all.** The dashboard is readable by anyone who can reach the address.
 3. **No configuration surface** — no actions, no settings.
 4. **The Rails master key is a constant in the package**, shared with anyone who reads the source; it decrypts the image's bundled credentials, not yours.

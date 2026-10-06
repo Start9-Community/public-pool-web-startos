@@ -1,5 +1,4 @@
 import { setupManifest } from '@start9labs/start-sdk'
-import { i18n } from '../i18n'
 import { long, short } from './i18n'
 
 export const manifest = setupManifest({
@@ -24,16 +23,6 @@ export const manifest = setupManifest({
     valkey: {
       source: { dockerTag: 'valkey/valkey:8-alpine' },
       arch: ['x86_64', 'aarch64'],
-    },
-  },
-  dependencies: {
-    'public-pool': {
-      optional: false,
-      description: i18n('Public Pool is required to run this application.'),
-      metadata: {
-        title: 'Public Pool',
-        icon: 'https://raw.githubusercontent.com/Start9Labs/public-pool-startos/refs/heads/master/icon.svg',
-      },
     },
   },
 })

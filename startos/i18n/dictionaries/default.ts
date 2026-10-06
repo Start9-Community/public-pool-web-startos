@@ -15,7 +15,7 @@ const dict = {
   // interfaces.ts
   'Web UI': 7,
   "The web interface of Public Pool's Web": 8,
-  // manifest.ts
+  // dependencies.ts
   'Public Pool is required to run this application.': 9,
 } as const
 
