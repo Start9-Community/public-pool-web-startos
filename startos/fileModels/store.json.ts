@@ -1,7 +1,7 @@
 import { FileHelper, z } from '@start9labs/start-sdk'
 import { sdk } from '../sdk'
 
-const shape = z.object({
+const shape = z.looseObject({
   // Write-once: the cluster is initialized with it, so regenerating makes the
   // existing data unopenable rather than rotating a credential.
   postgresPassword: z.string().optional().catch(undefined),

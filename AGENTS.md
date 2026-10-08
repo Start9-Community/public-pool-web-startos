@@ -18,17 +18,23 @@ Freshly scaffolded? Work the
 guide page, not a file in this repo — read it, don't copy it in.
 
 Keep `README.md` (technical reference for an AI support or administering agent) and
-`instructions.md` (end-user docs) in sync with your changes.
+`instructions.md` (end-user docs) in sync with your changes. This file restates neither:
+whoever changes the package has both, so it carries only what they don't — repo mechanics,
+a change that looks right and is not, where the next thing gets added, a naming trap, a
+build or test invocation particular to this repo.
 
-**Bugs and feature requests are GitHub issues on this repo** — file them as you find them.
+**Fix a defect you spot rather than reporting it** — you have the package open and the
+context to be sure. File **a GitHub issue on this repo** only when the call isn't yours to
+make: you can't pin the cause down, two defensible fixes exist, or it's too large to ride on
+the work in hand. An open issue is a report, not a queue — implement one when you're asked
+to or when it's labelled `Approved`, then close it with `Closes #<n>`.
+
 Don't record work in the repo instead: no `TODO.md`, no `NOTES.md`, no `PLAN.md`. What you
 verified, tried, and decided belongs in the commit message and the PR body.
 
 ## This repo
 
-- **`masterKey` is upstream's Rails master key, checked in deliberately** — the published image needs it to decrypt its own bundled `credentials.yml.enc`. It is not a per-install secret and must match whatever the pinned image was built with, so bump it only if upstream rotates theirs.
-- **Sidekiq's health check reads the queue, not a port.** It counts entries in Valkey's `processes` set (each worker refreshes its registration every few seconds) because Sidekiq binds nothing. Don't replace it with a process check.
-- **Valkey persists nothing on purpose** (`--save ''`, `--appendonly no`, bound to loopback, no volume) — it is a job queue and cache. Don't give it a volume.
-- **PostgreSQL is started with `listen_addresses=127.0.0.1`** so it is reachable only inside the service's own namespace.
-- **The dependency requires both of Public Pool's checks** (`stratum` and `ui`), so the dashboard waits rather than rendering an empty page against a half-up pool.
-- **The donation addresses are the upstream author's** and are passed as env by design — they are not ours and are not configurable.
+- **Change `masterKey` only when upstream rotates theirs** — it decrypts the pinned image's bundled `credentials.yml.enc`, so a "rotated" key breaks the app rather than securing it.
+- **Keep Sidekiq's health check on Valkey's `processes` set**, not a process or port check — Sidekiq binds nothing, and the registration is its only liveness signal.
+- **Don't give Valkey a volume or turn persistence on** — everything in it is re-derivable.
+- **Keep both of Public Pool's health checks (`stratum`, `ui`) on the dependency** — with one, StartOS reports the dependency satisfied while the pool is only half up.
