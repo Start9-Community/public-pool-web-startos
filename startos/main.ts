@@ -6,7 +6,6 @@ import {
   postgresUser,
   postgresDb,
   redisUrl,
-  masterKey,
   donateBtcAddress,
   donateLnAddress,
   publicPoolHostId,
@@ -22,6 +21,14 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const postgresPassword = await storeJson
     .read((s) => s.postgresPassword)
     .const(effects)
+  const secretKeyBase = await storeJson
+    .read((s) => s.secretKeyBase)
+    .const(effects)
+  if (!secretKeyBase) {
+    throw new Error(
+      'store.json has no secretKeyBase; init should have generated it.',
+    )
+  }
 
   // Public Pool over the LXC bridge. The address only changes when Public
   // Pool's binding does, so this .const() does not restart on its updates.
@@ -152,7 +159,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         env: {
           PUBLIC_POOL_HOST: publicPoolHost,
           PUBLIC_POOL_PORT: publicPoolPort,
-          RAILS_MASTER_KEY: masterKey,
+          SECRET_KEY_BASE: secretKeyBase,
           DATABASE_URL: databaseUrl,
           REDIS_URL: redisUrl,
           DONATE_BTC_ADDRESS: donateBtcAddress,
@@ -178,7 +185,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         env: {
           PUBLIC_POOL_HOST: publicPoolHost,
           PUBLIC_POOL_PORT: publicPoolPort,
-          RAILS_MASTER_KEY: masterKey,
+          SECRET_KEY_BASE: secretKeyBase,
           REDIS_URL: redisUrl,
           DATABASE_URL: databaseUrl,
           DONATE_BTC_ADDRESS: donateBtcAddress,

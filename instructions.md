@@ -19,7 +19,10 @@ The pool data itself comes from your separate **Public Pool** service over the l
 
 1. **Install and start the Public Pool service** if you haven't already, and point your miners at it. This is required — Public Pool's Web reads everything from it.
 2. Start Public Pool's Web and wait until the **Database** and **Web Interface** health checks are green. The first start may take a little longer while the database is created and migrated.
-3. Open the **Web UI** interface to launch the dashboard in your browser.
+3. Run the **Create UI Password** action and save the password it shows.
+4. Open the **Web UI** interface and sign in with the username `admin` and that password.
+
+Anyone with the password can change everything in the app — your users and workers, the pool it reads from, and its stored history — so keep it to yourself. To replace it, run **Reset UI Password**; the old one stops working at once.
 
 ## Using Public Pool's Web
 

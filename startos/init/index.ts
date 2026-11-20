@@ -5,6 +5,7 @@ import { versionGraph } from '../versions'
 import { actions } from '../actions'
 import { restoreInit } from '../backups'
 import { initializeService } from './initializeService'
+import { taskUiPassword } from './taskUiPassword'
 
 export const init = sdk.setupInit(
   restoreInit,
@@ -13,6 +14,7 @@ export const init = sdk.setupInit(
   actions,
   dependencies,
   initializeService,
+  taskUiPassword,
 )
 
 export const uninit = sdk.setupUninit(versionGraph)

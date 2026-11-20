@@ -34,7 +34,6 @@ verified, tried, and decided belongs in the commit message and the PR body.
 
 ## This repo
 
-- **Change `masterKey` only when upstream rotates theirs** — it decrypts the pinned image's bundled `credentials.yml.enc`, so a "rotated" key breaks the app rather than securing it.
 - **Keep Sidekiq's health check on Valkey's `processes` set**, not a process or port check — Sidekiq binds nothing, and the registration is its only liveness signal.
 - **Don't give Valkey a volume or turn persistence on** — everything in it is re-derivable.
 - **Keep both of Public Pool's health checks (`stratum`, `ui`) on the dependency** — with one, StartOS reports the dependency satisfied while the pool is only half up.

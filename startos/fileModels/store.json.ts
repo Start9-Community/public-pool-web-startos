@@ -5,6 +5,8 @@ const shape = z.looseObject({
   // Write-once: the cluster is initialized with it, so regenerating makes the
   // existing data unopenable rather than rotating a credential.
   postgresPassword: z.string().optional().catch(undefined),
+  secretKeyBase: z.string().optional().catch(undefined),
+  uiPassword: z.string().optional().catch(undefined),
 })
 
 export const storeJson = FileHelper.json(
