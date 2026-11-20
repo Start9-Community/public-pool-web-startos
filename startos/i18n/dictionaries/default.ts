@@ -17,6 +17,20 @@ const dict = {
   "The web interface of Public Pool's Web": 8,
   // dependencies.ts
   'Public Pool is required to run this application.': 9,
+
+  // actions/resetUiPassword.ts
+  'Reset UI Password': 12,
+  'Create UI Password': 13,
+  'Generate a new password for the web UI': 14,
+  'Generate the password for the web UI': 15,
+  'Replaces the current web UI password.': 16,
+  'Web UI Credentials': 17,
+  'Sign in to the web UI with these credentials. Save the password to a password manager.': 18,
+  Username: 19,
+  Password: 20,
+
+  // init/taskUiPassword.ts
+  'Create a password to sign in to the web UI': 21,
 } as const
 
 /**
