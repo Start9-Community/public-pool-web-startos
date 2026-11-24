@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" alt="Public Pool's Web Logo" width="21%">
+  <img src="icon.svg" alt="Public Pool's Web Logo" width="21%">
 </p>
 
 # Public Pool's Web on StartOS
