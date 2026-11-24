@@ -1,18 +1,18 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.2.0:5',
+  version: '0.2.2:0',
   releaseNotes: {
     en_US:
-      'Requires StartOS 0.4.2 or later. The web UI now requires a password. After updating, run Create UI Password and sign in with the username admin and the password it shows. Each install also now has its own secret key.',
+      "Requires StartOS 0.4.2 or later. Updates Public Pool's Web to 0.2.2, a security-hardening release: cross-origin redirects from the Public Pool API are rejected, detailed error pages are disabled, pool periods and port values are validated, and chart data cleanup now uses DELETE requests. Ruby is updated to 4.0.7.",
     es_ES:
-      'Requiere StartOS 0.4.2 o posterior. La interfaz web ahora requiere una contraseña. Después de actualizar, ejecuta Crear contraseña de la interfaz e inicia sesión con el usuario admin y la contraseña que muestra. Además, cada instalación tiene ahora su propia clave secreta.',
+      "Requiere StartOS 0.4.2 o posterior. Actualiza Public Pool's Web a 0.2.2, una versión de refuerzo de seguridad: se rechazan las redirecciones de origen cruzado de la API de Public Pool, se desactivan las páginas de error detalladas, se validan los periodos del pool y los valores de puerto, y la limpieza de datos de gráficos usa ahora peticiones DELETE. Ruby se actualiza a 4.0.7.",
     de_DE:
-      'Erfordert StartOS 0.4.2 oder neuer. Die Weboberfläche verlangt jetzt ein Passwort. Führe nach dem Update UI-Passwort erstellen aus und melde dich mit dem Benutzernamen admin und dem angezeigten Passwort an. Außerdem hat jede Installation jetzt ihren eigenen geheimen Schlüssel.',
+      "Erfordert StartOS 0.4.2 oder neuer. Aktualisiert Public Pool's Web auf 0.2.2, ein Sicherheits-Release: Cross-Origin-Weiterleitungen der Public-Pool-API werden abgelehnt, detaillierte Fehlerseiten sind deaktiviert, Pool-Zeiträume und Portwerte werden validiert, und das Bereinigen von Diagrammdaten nutzt jetzt DELETE-Anfragen. Ruby wurde auf 4.0.7 aktualisiert.",
     pl_PL:
-      'Wymaga StartOS 0.4.2 lub nowszego. Interfejs webowy wymaga teraz hasła. Po aktualizacji uruchom Utwórz hasło interfejsu i zaloguj się jako admin hasłem, które zostanie wyświetlone. Każda instalacja ma teraz także własny klucz tajny.',
+      "Wymaga StartOS 0.4.2 lub nowszego. Aktualizuje Public Pool's Web do 0.2.2 — wydania wzmacniającego bezpieczeństwo: przekierowania cross-origin z API Public Pool są odrzucane, szczegółowe strony błędów są wyłączone, okresy puli i wartości portów są walidowane, a czyszczenie danych wykresów używa teraz żądań DELETE. Ruby zaktualizowano do 4.0.7.",
     fr_FR:
-      "Nécessite StartOS 0.4.2 ou une version ultérieure. L'interface web demande désormais un mot de passe. Après la mise à jour, lancez Créer le mot de passe de l'interface et connectez-vous avec le nom d'utilisateur admin et le mot de passe affiché. Chaque installation dispose aussi désormais de sa propre clé secrète.",
+      "Nécessite StartOS 0.4.2 ou une version ultérieure. Met à jour Public Pool's Web vers 0.2.2, une version de renforcement de la sécurité : les redirections cross-origin de l'API Public Pool sont rejetées, les pages d'erreur détaillées sont désactivées, les périodes du pool et les valeurs de port sont validées, et le nettoyage des données de graphiques utilise désormais des requêtes DELETE. Ruby passe à la version 4.0.7.",
   },
   migrations: {
     up: async ({ effects }) => {},
