@@ -13,7 +13,7 @@ export const manifest = setupManifest({
   volumes: ['db'],
   images: {
     'public-pool-web': {
-      source: { dockerTag: 'martinbarilik/public-pool-web:0.2.2' },
+      source: { dockerTag: 'martinbarilik/public-pool-web:0.2.3' },
       arch: ['x86_64', 'aarch64'],
     },
     postgres: {
